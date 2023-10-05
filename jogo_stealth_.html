@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Jogo de Furtividade</title>
+    <style>
+        canvas {
+            border: 2px solid black;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas" width="1280" height="720"></canvas>
+    <script>
+        const canvas = document.getElementById("gameCanvas");
+        const ctx = canvas.getContext("2d");
+        const playerSize = 20;
+        const playerSpeed = 3;
+        const hidingSpots = [{x: 100, y: 100}, {x: 250, y: 250}, {x: 900, y: 500}, {x: 1100, y: 200}];
+        const walls = [
+            {x: 150, y: 0, width: 20, height: 200},
+            {x: 250, y: 200, width: 20, height: 200},
+            {x: 100, y: 300, width: 20, height: 100},
+            {x: 700, y: 0, width: 20, height: 400},
+            {x: 500, y: 450, width: 20, height: 150},
+            {x: 1000, y: 100, width: 20, height: 300}
+        ];
+        let playerX = 50;
+        let playerY = 50;
+        let gameOver = false;
+        let followDistance = 110; // Distância da qual os inimigos começam a seguir o jogador
+
+        const enemies = [
+            { x: 200, y: 200, captured: false },
+            { x: 300, y: 100, captured: false },
+            { x: 400, y: 300, captured: false },
+            { x: 800, y: 400, captured: false },
+            { x: 1100, y: 600, captured: false },
+            { x: 1100, y: 600, captured: false },
+            { x: 1100, y: 600, captured: false },
+            { x: 1100, y: 600, captured: false },
+            { x: 900, y: 600, captured: false },
+            { x: 100, y: 600, captured: false },
+            { x: 400, y: 500, captured: false },
+            { x: 200, y: 300, captured: false },
+            { x: 600, y: 100, captured: false }
+        ];
+
+        function drawPlayer() {
+            ctx.fillStyle = "blue";
+            ctx.fillRect(playerX, playerY, playerSize, playerSize);
+        }
+
+        function drawEnemies() {
+            ctx.fillStyle = "red";
+            for (const enemy of enemies) {
+                if (!enemy.captured) {
+                    ctx.fillRect(enemy.x, enemy.y, playerSize, playerSize);
+                }
+            }
+        }
+
+        function drawHidingSpots() {
+            ctx.fillStyle = "green";
+            for (const spot of hidingSpots) {
+                ctx.fillRect(spot.x, spot.y, playerSize, playerSize);
+            }
+        }
+
+        function drawWalls() {
+            ctx.fillStyle = "gray";
+            for (const wall of walls) {
+                ctx.fillRect(wall.x, wall.y, wall.width, wall.height);
+            }
+        }
+
+        function checkCollision() {
+            for (const enemy of enemies) {
+                if (
+                    !enemy.captured &&
+                    playerX < enemy.x + playerSize &&
+                    playerX + playerSize > enemy.x &&
+                    playerY < enemy.y + playerSize &&
+                    playerY + playerSize > enemy.y
+                ) {
+                    gameOver = true;
+                }
+            }
+        }
+
+        function checkWin() {
+            if (playerX + playerSize >= canvas.width) {
+                alert("Você venceu!");
+                document.location.reload();
+            }
+        }
+
+        function moveEnemies() {
+            for (const enemy of enemies) {
+                if (!enemy.captured) {
+                    // faz movimento aleatório
+                    const randomDirection = Math.floor(Math.random() * 4);
+
+                    switch (randomDirection) {
+                        case 0: // Move para a esquerda
+                            enemy.x -= playerSpeed;
+                            break;
+                        case 1: // Move para a direita
+                            enemy.x += playerSpeed;
+                            break;
+                        case 2: // Move para cima
+                            enemy.y -= playerSpeed;
+                            break;
+                        case 3: // Move para baixo
+                            enemy.y += playerSpeed;
+                            break;
+                    }
+
+                    // Verifica colisão com as paredes
+                    for (const wall of walls) {
+                        if (
+                            enemy.x < wall.x + wall.width &&
+                            enemy.x + playerSize > wall.x &&
+                            enemy.y < wall.y + wall.height &&
+                            enemy.y + playerSize > wall.y
+                        ) {
+                            // Reverte o movimento
+                            enemy.x += playerSpeed;
+                            enemy.y += playerSpeed;
+                        }
+                    }
+
+                    // Verifica se o jogador está próximo
+                    if (
+                        Math.abs(playerX - enemy.x) < followDistance &&
+                        Math.abs(playerY - enemy.y) < followDistance
+                    ) {
+
+                        const speedMultiplier = 0.5; // muda a velocidade quando inimigo ve o jogador
+                        // Segue o jogador
+                        if (playerX > enemy.x) {
+                    enemy.x += playerSpeed * speedMultiplier;
+                } else if (playerX < enemy.x) {
+                    enemy.x -= playerSpeed * speedMultiplier;
+                }
+                if (playerY > enemy.y) {
+                    enemy.y += playerSpeed * speedMultiplier;
+                } else if (playerY < enemy.y) {
+                    enemy.y -= playerSpeed * speedMultiplier;
+                        }
+                    }
+                }
+            }
+        }
+
+        function checkWallCollision() {
+            for (const wall of walls) {
+                if (
+                    playerX < wall.x + wall.width &&
+                    playerX + playerSize > wall.x &&
+                    playerY < wall.y + wall.height &&
+                    playerY + playerSize > wall.y
+                ) {
+                    playerX = 50; // Reinicia a posição do jogador
+                    playerY = 50;
+                }
+            }
+        }
+
+        function update() {
+            if (gameOver) {
+                return;
+            }
+
+            if (keyState.ArrowLeft && playerX > 0) {
+                playerX -= playerSpeed;
+            }
+            if (keyState.ArrowRight && playerX < canvas.width - playerSize) {
+                playerX += playerSpeed;
+            }
+            if (keyState.ArrowUp && playerY > 0) {
+                playerY -= playerSpeed;
+            }
+            if (keyState.ArrowDown && playerY < canvas.height - playerSize) {
+                playerY += playerSpeed;
+            }
+
+            checkCollision();
+            checkWin();
+            moveEnemies();
+            checkWallCollision();
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawWalls();
+            drawPlayer();
+            drawEnemies();
+            drawHidingSpots();
+            requestAnimationFrame(update);
+        }
+
+        const keyState = {};
+        window.addEventListener("keydown", (e) => {
+            keyState[e.key] = true;
+        });
+        window.addEventListener("keyup", (e) => {
+            keyState[e.key] = false;
+        });
+
+        update();
+    </script>
+</body>
+</html>
